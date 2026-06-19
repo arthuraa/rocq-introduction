@@ -1,178 +1,195 @@
-From mathcomp Require Import all_ssreflect.
+(** We are going to start by exploring basic functionalities of the Rocq
+    languages: how we define datatypes, functions, and write proofs.  Many of
+    these definitions are provided by the Rocq standard library, but we'll start
+    from scratch to understand how things work under the hood. Later, we'll
+    attempt to reuse what the standard library provides to us.
 
-Require Extraction.
+    The only thing we will use, for now, is the ssreflect library, which
+    provides various convenient commands. *)
 
-Module NatPlayground.
+Require Import ssreflect.
 
-Inductive nat :=
+(** The first thing we'll do is to define a number type.  A natural number is a
+    type that is defined inductively by two constructors: O and S.  *)
+
+Inductive nat : Type :=
 | O
 | S (n : nat).
 
-Definition zero := O.
-Definition one := S zero.
-Definition two := S one.
+(** We can define constants and functions using the [Definition] keyword. *)
 
-Fixpoint addn n m :=
+Definition zero : nat := O.
+Definition one : nat := S zero.
+Definition two : nat := S one.
+
+Definition succ (n : nat) : nat := S n.
+Definition plus_two (n : nat) : nat := succ (succ n).
+
+(** We can also define functions recursively using the [Fixpoint] keyword. *)
+
+Fixpoint add n m :=
   match n with
   | O => m
-  | S n' => S (addn n' m)
+  | S n' => S (add n' m)
   end.
 
-Lemma add0n : left_id O addn.
-Proof. move=> m. rewrite /=. by []. Qed.
+(** The [Compute] command allows us to evaluate the result of an expression. *)
 
-Lemma addn0 : right_id O addn.
-Proof. move=> m. elim: m => [|m IH].
-- rewrite /=. by [].
-- rewrite /=. rewrite IH. by [].
-Qed.
+Compute add two two.
 
-Lemma addnS n m : addn n (S m) = S (addn n m).
+(** What makes Rocq different from other languages is that we can state
+    properties about our definitions and try to prove them. For example: *)
+
+Lemma add_l_0 : forall n, add O n = n.
+
+(** To prove this result, we must enter a sequence of _tactics_: commands that
+    instruct Rocq to apply deduction rules. *)
+
+Proof.      (* Start proof *)
+intros n.   (* Name the quantified variable *)
+rewrite /=. (* Simplify definitions in the goal *)
+auto.       (* Rocq can conclude automatically: everything is equal to itself *)
+Qed.        (* Assert that the proof is over *)
+
+(** This result is so simple that the [auto] tactic is enough.  In general,
+    [auto] will try to prove a goal by chaining together a series of elementary
+    proof steps, up to some limit. *)
+
+Lemma add_l_0' : forall n, add O n = n.
+Proof. auto. Qed.
+
+(** Some results require more effort.  For example: *)
+
+Lemma add_r_0 : forall n, add n O = n.
 Proof.
-elim: n => /= [|n IH].
-- by [].
-- by rewrite IH.
+intros n.
+rewrite /=. (* Nothing happens... *)
+auto. (* Still nothing *)
+
+(** The problem is that [add] is defined by case analysis on its first argument.
+    Since the first argument is a variable, Rocq does not attempt to simplify
+    anything.
+
+    We can try to make some progress by performing a case analysis.  The
+    [destruct] tactic tells Rocq to consider all constructors that could have
+    been used to form a value.  Each constructor generates a subcase in our
+    proof. *)
+
+destruct n as [|m]. (* Either n is [O] or [S m] *)
+- auto.
+- rewrite /=.
+
+(** Here, we'll need something stronger than [destruct].  The [induction] tactic
+    performs a proof by induction.  It is similar to [destruct], except that it
+    gives us an induction hypothesis. *)
+
+Restart.
+
+intros n. induction n as [|m IH].
+- rewrite /=. auto.
+- rewrite /= IH. (* Simplify and rewrite with the induction hypothesis *)
+  auto.
 Qed.
 
-Lemma addnC n m : addn n m = addn m n.
-Proof.
-elim: n => /= [|n IH].
-- by rewrite addn0.
-- by rewrite addnS IH.
-Qed.
+(** Let's try to prove some other results. *)
 
-Lemma addnA n m p : addn n (addn m p) = addn (addn n m) p.
+Lemma add_l_S : forall n m, add (S n) m = S (add n m).
+Proof. auto. Qed.
+
+Lemma add_r_S : forall n m, add n (S m) = S (add n m).
 Proof. Admitted.
 
-Fixpoint leq n m :=
-  match n with
-  | O => true
-  | S n' =>
-      match m with
-      | O => false
-      | S m' => leq n' m'
-      end
-  end.
-
-Lemma leqnn n : leq n n.
-Proof. by elim: n => /= [|n ->]. Qed.
-
-Lemma leq_trans n m p : leq n m -> leq m p -> leq n p.
-Proof.
-elim: n => //= n IH in m p *.
-case: m => //= m.
-case: p => //= p.
-exact: IH.
-Qed.
-
-Lemma leq_anti n m : leq n m -> leq m n -> n = m.
-Proof.
-elim: n => //= [|n IH] in m *.
-- by case: m.
-- case: m => //= m nm mn.
-  by rewrite (IH m nm mn).
-Qed.
-
-Lemma leq_addl n1 n2 m : leq n1 n2 -> leq (addn n1 m) (addn n2 m).
+Lemma add_comm n m : add n m = add m n.
 Proof. Admitted.
 
-Lemma leq_addr n m1 m2 : leq m1 m2 -> leq (addn n m1) (addn n m2).
-Proof. Admitted.
+(** Besides equality and [forall], we have many other logical connectives to
+    write theorem statements.  For example: *)
 
-End NatPlayground.
+Lemma add_eq_0 : forall n m, add n m = O -> n = O /\ m = O.
 
-Lemma test1 : 2 = S (S O).
-Proof. by []. Qed.
+(** In words, if [n + m] is 0, then both [n] and [m] are 0. *)
 
-Lemma test2 : 1 + 1 = 2.
-Proof. by []. Qed.
+Proof.
+intros n m H.
+(* Run one tactic after the other, including all subgoals *)
+destruct n as [|n]; destruct m as [|m].
 
-Module SeqPlayground.
+(** The first goal is trivial. We use the [split] tactic to prove each side of
+    the conjunction in a separate subgoal. *)
 
-Inductive seq (T : Type) : Type :=
-| nil
-| cons (x : T) (xs : seq T).
+- split.
+  + done.
+  + done.
+
+(** The following goals are contradictory: they assert that a non-zero number
+    equals zero. [done] knows that different constructors yield different
+    values and allows us to finish the proof. *)
+
+- rewrite /= in H. done.
+- rewrite /= in H. done.
+- rewrite /= in H. done.
+Qed.
+
+Lemma add_eq_S : forall n m p, add n m = S p -> exists k, n = S k \/ m = S k.
+Proof.
+
+intros n m p H.
+destruct n as [|n]; destruct m as [|m].
+
+- rewrite /= in H. done.
+- exists m. right. done.
+- exists n. left. done.
+- exists n. left. done.
+
+Qed.
+
+
+(** We can also define more interesting data types.  The following declaration
+    defines a data type [list T] that is parameterized by the type [T] of
+    elements stored in the list.  *)
+
+Inductive list (T : Type) : Type :=
+| nil (* An empty list *)
+| cons (x : T) (xs : list T) (* A list with first element [x] followed by [xs] *).
+
+(** Similarly to some languages (e.g. old versions of C++), we need to specify
+    what the type is when invoking a constructor: *)
+
+Definition ex1 : list nat :=
+  (* An empty list of nats *)
+  nil nat.
+
+Definition ex2 : list nat :=
+  (* A list with zero and nothing else *)
+  cons nat zero (nil nat).
+
+(** Since this to annoying to use, we can ask Rocq to infer what these types are
+    automatically: *)
 
 Arguments nil {T}.
+Arguments cons {T}.
 
-Fixpoint cat T (xs ys : seq T) : seq T :=
+Definition ex1' : list nat := nil.
+Definition ex2' : list nat := cons zero nil.
+
+(** We can define generic, or polymorphic, functions on lists. The following
+    function appends one list onto another.  Note that we use curly braces to
+    tell Rocq to always infer the type T, whenever possible. *)
+
+Fixpoint app {T} (xs ys : list T) : list T :=
   match xs with
   | nil => ys
-  | cons x xs' => cons x (cat xs' ys)
+  | cons x xs' => cons x (app xs' ys)
   end.
 
-Lemma catA T (xs ys zs : seq T) : cat xs (cat ys zs) = cat (cat xs ys) zs.
-Proof.
-elim: xs => //= x xs IH.
-by rewrite IH.
-Qed.
+(** Lemmas can also be polymorphic: *)
 
-End SeqPlayground.
+Lemma app_nil_l : forall T (xs : list T), app nil xs = xs.
+Proof. Admitted.
 
-Fixpoint insert (x : nat) (xs : seq nat) : seq nat :=
-  match xs with
-  | [::] => [:: x]
-  | x' :: xs' => if x <= x' then x :: x' :: xs'
-                 else x' :: insert x xs'
-  end.
+Lemma app_nil_r : forall T (xs : list T), app xs nil = xs.
+Proof. Admitted.
 
-Fixpoint insertion_sort xs :=
-  match xs with
-  | [::] => [::]
-  | x :: xs' => insert x (insertion_sort xs')
-  end.
-
-Fixpoint sorted xs :=
-  match xs with
-  | [::] => true
-  | x :: xs =>
-      match xs with
-      | [::] => true
-      | x' :: xs' => x <= x'
-      end && sorted xs
-  end.
-
-Fixpoint count (x : nat) xs :=
-  match xs with
-  | [::] => 0
-  | y :: xs' => (x == y) + count x xs'
-  end.
-
-Lemma count_insert x y xs : count x (insert y xs) = (x == y) + count x xs.
-Proof.
-elim: xs => //= z xs IH.
-case: leqP => //=.
-move=> zy. by rewrite IH addnCA.
-Qed.
-
-Lemma count_sort x xs : count x xs = count x (insertion_sort xs).
-Proof.
-elim: xs => //= y xs IH.
-by rewrite count_insert IH.
-Qed.
-
-Lemma sorted_insert x xs : sorted xs -> sorted (insert x xs).
-Proof.
-elim: xs => //= y xs' IH sorted_xs.
-case/andP: sorted_xs => y_xs' sorted_xs'.
-case: leqP => [xy|yx].
-- by rewrite /= xy y_xs'.
-- rewrite /= {}IH // andbT.
-  case: xs' => /= [|z xs''] in y_xs' {sorted_xs'} *.
-  + by rewrite ltnW.
-  + case: leqP => [xz|zx] //.
-    by rewrite ltnW.
-Qed.
-
-Lemma sorted_sort xs : sorted (insertion_sort xs).
-Proof.
-elim: xs => //= x xs IH.
-by rewrite sorted_insert.
-Qed.
-
-Extract Inductive bool => "bool" ["true" "false"].
-Extract Inductive nat  => "int" ["0" "(fun n -> n + 1)"]
-  "(fun fO fS n -> if n = 0 then fO () else fS (n - 1))".
-Extract Inductive list => "list" ["[]" "(::)"].
-
-Extraction "sort.ml" insertion_sort.
+Lemma app_assoc :
+  forall T (xs ys zs : list T), app xs (app ys zs) = app (app xs ys) zs.
+Proof. Admitted.
