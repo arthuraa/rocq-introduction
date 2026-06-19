@@ -23,10 +23,11 @@
         # system.
 
         devShells.default = pkgs.mkShell {
-          buildInputs = with pkgs;
-            [ coqPackages_9_0.coq
-              coqPackages_9_0.stdpp.override { version = "1.12.0"; }
-              coqPackages_9_0.cop-lsp ]
+          buildInputs =
+            with pkgs.coqPackages_9_0; [
+              coq
+              stdpp
+              coq-lsp ];
         };
 
 
