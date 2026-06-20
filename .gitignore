@@ -4,3 +4,10 @@
 /sort.ml
 /sort.mli
 /.lia.cache
+*.aux
+*Makefile.conf
+/.Makefile.d
+*.glob
+*.vo
+*.vok
+*.vos
