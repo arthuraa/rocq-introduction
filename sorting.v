@@ -72,7 +72,8 @@ Fixpoint count (x : nat) xs :=
 (** How should we prove that [sort] preserves [count]? Because [sort] is defined
     using [insert], we begin by showing what [insert] does to [count]. *)
 
-Lemma count_insert x y xs : count x (insert y xs) = Nat.b2n (x =? y) + count x xs.
+Lemma count_insert x y xs :
+  count x (insert y xs) = Nat.b2n (x =? y) + count x xs.
 Proof.
 induction xs as [|z xs IH]; rewrite /=.
 - done.
@@ -81,11 +82,11 @@ induction xs as [|z xs IH]; rewrite /=.
   + rewrite IH. lia.
 Qed.
 
-Lemma count_sort x xs : count x xs = count x (sort xs).
+Lemma count_sort x xs : count x (sort xs) = count x xs.
 Proof.
 induction xs as [|y xs IH]; rewrite /=.
 - done.
-- rewrite IH count_insert. done.
+- rewrite -IH count_insert. done.
 Qed.
 
 (** For the first requirement, we will write a predicate [sorted xs], which
@@ -176,3 +177,136 @@ Extract Inductive nat  => "int" ["0" "(fun n -> n + 1)"]
 Extract Inductive list => "list" ["[]" "(::)"].
 
 Extraction "sort.ml" sort.
+
+(** Exercise: Alternate Definition of Sorted
+
+    This defines an alternative version of the [sorted] predicate. Prove that it
+    is equivalent to the original one. *)
+
+Fixpoint sorted' xs : Prop :=
+  match xs with
+  | [] => True
+  | x :: xs => (forall y, y ∈ xs -> x <= y) /\ sorted' xs
+  end.
+
+Lemma sorted_alt xs : sorted xs <-> sorted' xs.
+Proof.
+induction xs as [|x xs IH]; rewrite /=; auto.
+rewrite -IH. split.
+- intros [x_xs sorted_xs]. rewrite -lt_hd_sorted; auto.
+- intros [x_xs sorted_xs]. rewrite lt_hd_sorted; auto.
+Qed.
+
+(** Exercise: Tail-Recursive Sorting
+
+    The following tail-recursive implementation also sorts the list, but using
+    less auxiliary stack space. Prove that it is also a valid implementation of
+    sorting. *)
+
+Fixpoint tr_sort_aux xs acc :=
+  match xs with
+  | [] => acc
+  | x :: xs => tr_sort_aux xs (insert x acc)
+  end.
+
+Definition tr_sort xs := tr_sort_aux xs [].
+
+Lemma count_tr_sort_aux x xs acc :
+  count x (tr_sort_aux xs acc) = count x xs + count x acc.
+Proof.
+induction xs as [|y xs IH] in acc |- *; rewrite /=; auto.
+rewrite IH count_insert. lia.
+Qed.
+
+Lemma count_tr_sort x xs : count x (tr_sort xs) = count x xs.
+Proof. rewrite /tr_sort count_tr_sort_aux /=. lia. Qed.
+
+Lemma sorted_tr_sort_aux xs acc :
+  sorted acc ->
+  sorted (tr_sort_aux xs acc).
+Proof.
+induction xs as [|x xs IH] in acc |- *; rewrite /=; auto.
+intros sorted_acc. apply IH. apply sorted_insert. done.
+Qed.
+
+Lemma sorted_tr_sort xs : sorted (tr_sort xs).
+Proof. rewrite /tr_sort. apply sorted_tr_sort_aux. done. Qed.
+
+(** Exercise: Equal sorted lists
+
+    If two sorted lists have the same counts, they must be the same. Prove this
+    fact.  *)
+
+Lemma count_elem_of x xs : x ∈ xs <-> 0 < count x xs.
+Proof.
+induction xs as [|y xs IH].
+- rewrite elem_of_nil /=. split; lia.
+- rewrite elem_of_cons /= IH. split.
+  + intros [x_y|x_xs].
+    * rewrite x_y Nat.eqb_refl /=. lia.
+    * lia.
+  + destruct (x =? y) eqn:x_y; rewrite /=.
+    * rewrite Nat.eqb_eq in x_y. auto.
+    * auto.
+Qed.
+
+Lemma sorted_eq xs ys :
+  sorted xs ->
+  sorted ys ->
+  (forall x, count x xs = count x ys) ->
+  xs = ys.
+Proof.
+induction xs as [|x xs IH] in ys |- *; rewrite /=.
+- destruct ys as [|y ys]; auto.
+  intros _ _ H. assert (contra := H y).
+  rewrite /= Nat.eqb_refl /= in contra.
+  done.
+- intros [x_xs sorted_xs] sorted_ys H.
+  destruct ys as [|y ys].
+  + assert (contra := H x).
+    rewrite /= Nat.eqb_refl /= in contra. done.
+  + rewrite /= in sorted_ys. destruct sorted_ys as [y_ys sorted_ys].
+    assert (forall z, z ∈ xs -> x <= z) as x_xs'.
+    { rewrite -lt_hd_sorted; auto. }
+    assert (forall z, z ∈ ys -> y <= z) as y_ys'.
+    { rewrite -lt_hd_sorted; auto. }
+    assert (x <= y) as x_y.
+    { assert (Hy := H y). rewrite /= Nat.eqb_refl /= in Hy.
+      destruct (y =? x) eqn:x_y.
+      - rewrite Nat.eqb_eq in x_y. lia.
+      - rewrite /= in Hy. apply x_xs'. rewrite count_elem_of. lia. }
+    assert (y <= x) as y_x.
+    { assert (Hx := H x). rewrite /= Nat.eqb_refl /= in Hx.
+      destruct (x =? y) eqn:e.
+      - rewrite Nat.eqb_eq in e. lia.
+      - rewrite /= in Hx. apply y_ys'. rewrite count_elem_of. lia. }
+    assert (x = y) as e. { lia. }
+    rewrite e in H x_xs' *.
+    assert (forall z, count z xs = count z ys) as H'.
+    { intros z. assert (Hz := H z). rewrite /= in Hz. lia. }
+    rewrite (IH _ sorted_xs sorted_ys H'). done.
+Qed.
+
+(** Exercise: Sorting Twice
+
+    Prove that sorting a sorted list does not modify the input. *)
+
+Lemma sort_sorted xs : sorted xs -> sort xs = xs.
+Proof.
+intros sorted_xs. apply sorted_eq.
+- apply sorted_sort.
+- auto.
+- intros x. rewrite count_sort. done.
+Qed.
+
+(** Exercise: Tail-Recursive Sorting, redux
+
+    Prove that [tr_sort] and [sort] always return the same results. *)
+
+Lemma tr_sort_sort xs : tr_sort xs = sort xs.
+Proof.
+apply sorted_eq.
+- apply sorted_tr_sort.
+- apply sorted_sort.
+- intros x. rewrite count_tr_sort count_sort. done.
+Qed.
