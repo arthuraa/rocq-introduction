@@ -112,16 +112,36 @@ Fixpoint sorted xs : Prop :=
     and [||] are functions on booleans, and the comparison operator [<=?]
     returns a boolean.  By constrast, propositions do not usually compute to
     something that is trivially true or false: we must manually prove whether
-    the proposition holds or not. *)
+    the proposition holds or not.
+
+    We define [sorted] in terms of the [lt_hd] predicate.  For sorted lists,
+    this predicate is equivalent to ensuring that an element is a lower bound of
+    a list. *)
 
 Lemma lt_hd_sorted x xs :
   sorted xs ->
-  lt_hd x xs <-> (forall y, elem_of y xs -> x <= y).
+  lt_hd x xs <-> (forall y, y ∈ xs -> x <= y).
 Proof.
-intros sorted_xs. induction xs as [|y xs IH].
-- split; auto. intros _ y. rewrite elem_of_nil. intros [].
-- rewrite /= in sorted_xs. destruct sorted_xs as [y_xs sorted_xs].
-Admitted.
+rewrite -Forall_forall.
+intros sorted_xs. induction xs as [|y xs IH] in x, sorted_xs |- *.
+- rewrite Forall_nil. split; auto.
+- rewrite Forall_cons /= in sorted_xs *.
+  destruct sorted_xs as [y_xs sorted_xs]. split.
+  + intros x_y. split; auto. apply IH; auto.
+    destruct xs as [|??]; rewrite /= in y_xs *; lia.
+  + intros [??]; auto.
+Qed.
+
+Lemma elem_of_insert x y xs : x ∈ insert y xs <-> x = y \/ x ∈ xs.
+Proof.
+induction xs as [|z xs IH].
+- rewrite /= elem_of_nil list_elem_of_singleton right_id. done.
+- rewrite /= elem_of_cons.
+  destruct (_ <=? _).
+  + rewrite !elem_of_cons. done.
+  + rewrite elem_of_cons IH.
+    rewrite [_ ∨ _]assoc [x = z ∨ _]comm assoc. done.
+Qed.
 
 Lemma sorted_insert x xs : sorted xs -> sorted (insert x xs).
 Proof.
@@ -132,9 +152,14 @@ induction xs as [|y xs IH]; rewrite /=.
   destruct (x <=? y) eqn:x_y; rewrite /=.
   + rewrite -Nat.leb_le. auto.
   + split; auto.
-    destruct xs as [|z xs]; rewrite /=; auto.
-    rewrite Nat.leb_nle in x_y. lia. 
-Admitted.
+    rewrite lt_hd_sorted; auto.
+    intros z Hz.
+    rewrite elem_of_insert in Hz. rewrite Nat.leb_nle in x_y.
+    rewrite lt_hd_sorted in y_xs; auto.
+    destruct Hz as [z_x|z_xs].
+    * rewrite z_x. lia.
+    * apply y_xs. done.
+Qed.
 
 Lemma sorted_sort xs : sorted (sort xs).
 Proof.

@@ -103,29 +103,39 @@ Proof. Admitted.
 (** Besides equality and [forall], we have many other logical connectives to
     write theorem statements.  For example: *)
 
-Lemma add_eq_0 : forall n m, add n m = O -> n = O /\ m = O.
+Lemma add_eq_0 : forall n m, add n m = O <-> n = O /\ m = O.
 
-(** In words, if [n + m] is 0, then both [n] and [m] are 0. *)
+(** In words, [n + m] is 0 exactly when both [n] and [m] are 0. *)
 
 Proof.
-intros n m H.
-(* Run one tactic after the other, including all subgoals *)
-destruct n as [|n]; destruct m as [|m].
+intros n m.
+
+(** Logical equivalence [A <-> B] is defined as [(A -> B) /\ (B -> A)]. To prove
+    a conjunction, we use the [split] tactic, which creates separate subgoals to
+    prove each side of the conjunction. *)
+
+split.
+
+- (* Run one tactic after the other, including all subgoals *)
+  intros H. destruct n as [|n]; destruct m as [|m].
 
 (** The first goal is trivial. We use the [split] tactic to prove each side of
     the conjunction in a separate subgoal. *)
 
-- split.
-  + done.
-  + done.
+  + split; done.
 
 (** The following goals are contradictory: they assert that a non-zero number
     equals zero. [done] knows that different constructors yield different
     values and allows us to finish the proof. *)
 
-- rewrite /= in H. done.
-- rewrite /= in H. done.
-- rewrite /= in H. done.
+  + rewrite /= in H. done.
+  + rewrite /= in H. done.
+  + rewrite /= in H. done.
+
+- intros H.
+  (* Decompose the conjuction into two hypotheses *)
+  destruct H as [Hn Hm]. rewrite Hn Hm. done.
+
 Qed.
 
 Lemma add_eq_S : forall n m p, add n m = S p -> exists k, n = S k \/ m = S k.
