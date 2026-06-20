@@ -1,13 +1,11 @@
 (** We are going to start by exploring basic functionalities of the Rocq
     languages: how we define datatypes, functions, and write proofs.  Many of
     these definitions are provided by the Rocq standard library, but we'll start
-    from scratch to understand how things work under the hood. Later, we'll
-    attempt to reuse what the standard library provides to us.
+    from scratch to understand how things work under the hood. Later, we'll see
+    how to use external libraries. For now, we will just import the stdpp
+    library, which will provide various convenient commands for us to use. *)
 
-    The only thing we will use, for now, is the ssreflect library, which
-    provides various convenient commands. *)
-
-Require Import ssreflect.
+From stdpp Require Import base ssreflect.
 
 (** The first thing we'll do is to define a number type.  A natural number is a
     type that is defined inductively by two constructors: O and S.  *)
@@ -182,13 +180,21 @@ Fixpoint app {T} (xs ys : list T) : list T :=
   | cons x xs' => cons x (app xs' ys)
   end.
 
-(** Lemmas can also be polymorphic: *)
+(** Lemmas can also be polymorphic. Note that we can perform induction directly
+    any type defined inductively: we get as many cases as we have constructors,
+    each constructor requires us to name its arguments, and each recursive
+    argument comes with an induction hypothesis. *)
 
 Lemma app_nil_l : forall T (xs : list T), app nil xs = xs.
-Proof. Admitted.
+Proof. done. Qed.
 
 Lemma app_nil_r : forall T (xs : list T), app xs nil = xs.
-Proof. Admitted.
+Proof.
+intros T xs.
+induction xs as [|x xs IH].
+- done.
+- rewrite /= IH. done.
+Qed.
 
 Lemma app_assoc :
   forall T (xs ys zs : list T), app xs (app ys zs) = app (app xs ys) zs.

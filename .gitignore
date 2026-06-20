@@ -1,3 +1,6 @@
 .envrc
 .direnv
 .dir-locals.el
+/sort.ml
+/sort.mli
+/.lia.cache
