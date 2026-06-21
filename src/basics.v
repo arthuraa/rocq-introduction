@@ -43,29 +43,37 @@ Lemma add_l_0 : forall n, add O n = n.
 (** To prove this result, we must enter a sequence of _tactics_: commands that
     instruct Rocq to apply deduction rules. *)
 
+(* <admitted> *)
 Proof.      (* Start proof *)
 intros n.   (* Name the quantified variable *)
 rewrite /=. (* Simplify definitions in the goal *)
 eauto.       (* Rocq can conclude automatically: everything is equal to itself *)
 Qed.        (* Assert that the proof is over *)
+(* </admitted> *)
 
 (** This result is so simple that the [eauto] tactic is enough.  In general,
     [eauto] will try to prove a goal by chaining together a series of elementary
     proof steps, up to some limit. *)
 
 Lemma add_l_0' : forall n, add O n = n.
+(* <admitted> *)
 Proof. eauto. Qed.
+(* </admitted> *)
 
 (** To state that [a] and [b] are different, we write [a <> b]. *)
 
 Lemma one_not_zero : one <> zero.
+(* <admitted> *)
 Proof.
 rewrite /one /zero. (* Unfold the definitions of [one] and [zero]. *)
 done.
 Qed.
+(* </admitted> *)
 
 Lemma add_Sn_neq_zero : forall n m, add (S n) m <> O.
+(* <admitted> *)
 Proof. done. Qed.
+(* </admitted> *)
 
 (** Sometimes, we need to do a little bit more work.  These proofs go through
     because, after simplification, they reduce to a statement of the form [S a
@@ -74,6 +82,7 @@ Proof. done. Qed.
     following variant: *)
 
 Lemma add_nS_neq_zero : forall n m, add n (S m) <> O.
+(* <admitted> *)
 Proof.
 
 (** [done] does not work here. The problem is that [add] is defined by case
@@ -88,17 +97,21 @@ intros n m. destruct n as [|n].
 - rewrite /=. done.
 - rewrite /=. done.
 Qed.
+(* <admitted> *)
 
 (** We can also destruct a variable as we are introducing it: *)
 
 Lemma add_nS_neq_zero' : forall n m, add n (S m) <> O.
+(* <admitted> *)
 Proof. intros [|n] m; done. Qed.
+(* </admitted> *)
 
 (** Some results require more effort.  Let us try to show that 0 is a right
     neutral element for addition.  Like the previous result, simplification
     alone does not work because the first argument is a variable. *)
 
 Lemma add_r_0 : forall n, add n O = n.
+(* <admitted> *)
 Proof.
 intros n.
 rewrite /=. (* Nothing happens... *)
@@ -122,25 +135,32 @@ intros n. induction n as [|m IH].
 - rewrite /= IH. (* Simplify and rewrite with the induction hypothesis *)
   eauto.
 Qed.
+(* </admitted> *)
 
 (** Let's try to prove some other results. *)
 
 Lemma add_l_S : forall n m, add (S n) m = S (add n m).
+(* <admitted> *)
 Proof. eauto. Qed.
+(* </admitted> *)
 
 Lemma add_r_S : forall n m, add n (S m) = S (add n m).
+(* <admitted> *)
 Proof.
 intros n m. induction n as [|n IH].
 - eauto.
 - rewrite /= IH. eauto.
 Qed.
+(* </admitted> *)
 
 Lemma add_comm : forall n m, add n m = add m n.
+(* <admitted> *)
 Proof.
 intros n m. induction n as [|n IH].
 - rewrite /= add_r_0. done.
 - rewrite /= add_r_S IH. done.
 Qed.
+(* </admitted> *)
 
 (** Besides equality and [forall], we have many other logical connectives to
     write theorem statements. *)
@@ -149,6 +169,7 @@ Lemma add_eq_0 : forall n m, add n m = O <-> n = O /\ m = O.
 
 (** In words, [n + m] is 0 exactly when both [n] and [m] are 0. *)
 
+(* <admitted> *)
 Proof.
 intros n m.
 
@@ -179,8 +200,10 @@ split.
   destruct H as [Hn Hm]. rewrite Hn Hm. done.
 
 Qed.
+(* </admitted> *)
 
 Lemma add_eq_S : forall n m p, add n m = S p -> exists k, n = S k \/ m = S k.
+(* <admitted> *)
 Proof.
 
 intros n m p H.
@@ -192,7 +215,7 @@ destruct n as [|n]; destruct m as [|m].
 - exists n. left. done.
 
 Qed.
-
+(* </admitted> *)
 
 (** We can also define more interesting data types.  The following declaration
     defines a data type [list T] that is parameterized by the type [T] of
@@ -238,20 +261,26 @@ Fixpoint app {T} (xs ys : list T) : list T :=
     argument comes with an induction hypothesis. *)
 
 Lemma app_nil_l : forall T (xs : list T), app nil xs = xs.
+(* <admitted> *)
 Proof. done. Qed.
+(* </admitted> *)
 
 Lemma app_nil_r : forall T (xs : list T), app xs nil = xs.
+(* <admitted> *)
 Proof.
 intros T xs.
 induction xs as [|x xs IH].
 - done.
 - rewrite /= IH. done.
 Qed.
+(* </admitted> *)
 
 Lemma app_assoc :
   forall T (xs ys zs : list T), app xs (app ys zs) = app (app xs ys) zs.
+(* <admitted> *)
 Proof.
 intros T xs ys zs.
 induction xs as [|x xs IH]; rewrite /=; eauto.
 rewrite IH. done.
 Qed.
+(* </admitted> *)
