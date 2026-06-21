@@ -1,8 +1,8 @@
 .envrc
 .direnv
 .dir-locals.el
-/sort.ml
-/sort.mli
+/src/sort.ml
+/src/sort.mli
 *.cache
 *.aux
 *Makefile.conf

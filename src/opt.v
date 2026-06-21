@@ -168,24 +168,6 @@ rewrite /cp_if. case: bool_decide_reflect => [<-|_]; first exact: CPIf1.
 case: e =>[x|[|n]|*]; eauto using cp_if_spec.
 Qed.
 
-Lemma eval_expr_notyet e s : eval_expr e s ≠ NotYet.
-Proof.
-elim: e => [x|n|b e1 IH1 e2 IH2] //=.
-- by case: (s !! x).
-- case: (eval_expr e1) => //= r1 in IH1 *.
-  case: (eval_expr e2) => //= r2 in IH2 *.
-Qed.
-
-Lemma result_bind_done {T} (x : result T) : mbind Done x = x.
-Proof. by case: x. Qed.
-
-Lemma result_bind_inv {A B} {f : A → result B} {x : result A} {y : B} :
-  (a ← x; f a) = Done y →
-  ∃ a, x = Done a ∧ f a = Done y.
-Proof.
-case: x => [x| | ] //=. eauto.
-Qed.
-
 Definition improves {T} (x y : result T) : Prop :=
   y = Error ∨ x = y.
 
