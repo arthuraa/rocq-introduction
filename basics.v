@@ -46,35 +46,69 @@ Lemma add_l_0 : forall n, add O n = n.
 Proof.      (* Start proof *)
 intros n.   (* Name the quantified variable *)
 rewrite /=. (* Simplify definitions in the goal *)
-auto.       (* Rocq can conclude automatically: everything is equal to itself *)
+eauto.       (* Rocq can conclude automatically: everything is equal to itself *)
 Qed.        (* Assert that the proof is over *)
 
-(** This result is so simple that the [auto] tactic is enough.  In general,
-    [auto] will try to prove a goal by chaining together a series of elementary
+(** This result is so simple that the [eauto] tactic is enough.  In general,
+    [eauto] will try to prove a goal by chaining together a series of elementary
     proof steps, up to some limit. *)
 
 Lemma add_l_0' : forall n, add O n = n.
-Proof. auto. Qed.
+Proof. eauto. Qed.
 
-(** Some results require more effort.  For example: *)
+(** To state that [a] and [b] are different, we write [a <> b]. *)
+
+Lemma one_not_zero : one <> zero.
+Proof.
+rewrite /one /zero. (* Unfold the definitions of [one] and [zero]. *)
+done.
+Qed.
+
+Lemma add_Sn_neq_zero : forall n m, add (S n) m <> O.
+Proof. done. Qed.
+
+(** Sometimes, we need to do a little bit more work.  These proofs go through
+    because, after simplification, they reduce to a statement of the form [S a
+    <> O]. This inequality always holds because Rocq knows that different
+    constructors always yield different results. Consider, however, the
+    following variant: *)
+
+Lemma add_nS_neq_zero : forall n m, add n (S m) <> O.
+Proof.
+
+(** [done] does not work here. The problem is that [add] is defined by case
+    analysis on its first argument.  Since the first argument is a variable,
+    Rocq does not attempt to simplify anything.
+
+    We can make some progress by performing a case analysis.  The [destruct]
+    tactic tells Rocq to consider all constructors that could have been used to
+    form a value.  Each constructor generates a subcase in our proof. *)
+
+intros n m. destruct n as [|n].
+- rewrite /=. done.
+- rewrite /=. done.
+Qed.
+
+(** We can also destruct a variable as we are introducing it: *)
+
+Lemma add_nS_neq_zero' : forall n m, add n (S m) <> O.
+Proof. intros [|n] m; done. Qed.
+
+(** Some results require more effort.  Let us try to show that 0 is a right
+    neutral element for addition.  Like the previous result, simplification
+    alone does not work because the first argument is a variable. *)
 
 Lemma add_r_0 : forall n, add n O = n.
 Proof.
 intros n.
 rewrite /=. (* Nothing happens... *)
-auto. (* Still nothing *)
+eauto. (* Still nothing *)
 
-(** The problem is that [add] is defined by case analysis on its first argument.
-    Since the first argument is a variable, Rocq does not attempt to simplify
-    anything.
-
-    We can try to make some progress by performing a case analysis.  The
-    [destruct] tactic tells Rocq to consider all constructors that could have
-    been used to form a value.  Each constructor generates a subcase in our
-    proof. *)
+(** However, this time [destruct] does not help, either.  We can solve the zero
+    case, but the successor case brings us back to where we started. *)
 
 destruct n as [|m]. (* Either n is [O] or [S m] *)
-- auto.
+- eauto.
 - rewrite /=.
 
 (** Here, we'll need something stronger than [destruct].  The [induction] tactic
@@ -84,24 +118,32 @@ destruct n as [|m]. (* Either n is [O] or [S m] *)
 Restart.
 
 intros n. induction n as [|m IH].
-- rewrite /=. auto.
+- rewrite /=. eauto.
 - rewrite /= IH. (* Simplify and rewrite with the induction hypothesis *)
-  auto.
+  eauto.
 Qed.
 
 (** Let's try to prove some other results. *)
 
 Lemma add_l_S : forall n m, add (S n) m = S (add n m).
-Proof. auto. Qed.
+Proof. eauto. Qed.
 
 Lemma add_r_S : forall n m, add n (S m) = S (add n m).
-Proof. Admitted.
+Proof.
+intros n m. induction n as [|n IH].
+- eauto.
+- rewrite /= IH. eauto.
+Qed.
 
-Lemma add_comm n m : add n m = add m n.
-Proof. Admitted.
+Lemma add_comm : forall n m, add n m = add m n.
+Proof.
+intros n m. induction n as [|n IH].
+- rewrite /= add_r_0. done.
+- rewrite /= add_r_S IH. done.
+Qed.
 
 (** Besides equality and [forall], we have many other logical connectives to
-    write theorem statements.  For example: *)
+    write theorem statements. *)
 
 Lemma add_eq_0 : forall n m, add n m = O <-> n = O /\ m = O.
 
@@ -208,4 +250,8 @@ Qed.
 
 Lemma app_assoc :
   forall T (xs ys zs : list T), app xs (app ys zs) = app (app xs ys) zs.
-Proof. Admitted.
+Proof.
+intros T xs ys zs.
+induction xs as [|x xs IH]; rewrite /=; eauto.
+rewrite IH. done.
+Qed.

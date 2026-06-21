@@ -3,7 +3,7 @@
 .dir-locals.el
 /sort.ml
 /sort.mli
-/.lia.cache
+*.cache
 *.aux
 *Makefile.conf
 /.Makefile.d

@@ -1,5 +1,4 @@
-Require Import ssreflect.
-From stdpp Require Import base.
+From stdpp Require Import base ssreflect.
 
 (** We can understand logical connectives by asking two questions:
 
@@ -76,13 +75,31 @@ Proof. done. Qed.
 Lemma False_elim : forall P : Prop, False -> P.
 Proof. intros P H. destruct H. Qed.
 
+(** Negation
+
+    To negate a formula [P], we write [~ P], which is a synomym for [P ->
+    False]. In other words, [~ P] if we obtain a contradiction by assuming [P].
+    For example: *)
+
+Lemma neg_ex_1 : ~ False.
+Proof. intros contra. apply contra. Qed.
+
 (** Other tactics:
 
     - [assert]: introduce an intermediate assertion.
-    - [auto]: automatically apply hint lemmas.
+    - [eauto]: automatically apply hint lemmas.
     - [lia]: solve simple formulas involving integers.
     - [apply]: apply a hypothesis or previous lemma, possibly generating subgoals
-
-    TODO: Give examples of these lemmas.
+    - [congruence]: basic equality reasoning involving constructors.
 
 *)
+
+Lemma ex1 : forall n m, S n = S m -> n * n = m * m.
+Proof.
+intros n m e.
+assert (n = m) as e'. { congruence. }
+congruence.
+Qed.
+
+Lemma ex2 : forall n m, S n <= S m -> n <= m + m.
+Proof. intros n m. lia. Qed.
