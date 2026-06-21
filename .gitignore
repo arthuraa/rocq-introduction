@@ -6,7 +6,7 @@
 *.cache
 *.aux
 *Makefile.conf
-/.Makefile.d
+.Makefile.d
 *.glob
 *.vo
 *.vok
