@@ -216,9 +216,9 @@ rewrite /=.
 case: e1 e2 _ / cp_mulP => [n1 n2|e|e|e|e|e1 e2] //=.
 - by apply: improves_eval_expr.
 - by apply: improves_eval_expr => ?; rewrite Nat.mul_0_r.
-- rewrite -{1}[eval_expr e s]result_bind_done.
+- rewrite -{1}[eval_expr e s]result_mbind_done.
   by apply: improves_bind => // n; rewrite Nat.add_0_r.
-- rewrite -{1}[eval_expr e s]result_bind_done.
+- rewrite -{1}[eval_expr e s]result_mbind_done.
   by apply: improves_bind => // n; rewrite Nat.mul_1_r.
 Qed.
 
@@ -228,7 +228,7 @@ Proof.
 rewrite /=.
 case: e1 e2 _ / cp_subP => [n1 n2|e|e|e1 e2] //=.
 - by apply: improves_eval_expr => ?; rewrite Nat.sub_0_l.
-- rewrite -{1}[eval_expr e s]result_bind_done.
+- rewrite -{1}[eval_expr e s]result_mbind_done.
   by apply: improves_bind => // n; rewrite Nat.sub_0_r.
 Qed.
 
@@ -261,23 +261,23 @@ apply: improves_trans.
 Qed.
 Hint Resolve cp_expr_correct : core.
 
-Lemma cp_seq_correct c1 c2 s k :
-  improves (eval_com (cp_seq c1 c2) s k) (eval_com (Seq c1 c2) s k).
+Lemma cp_seq_correct c1 c2 k s :
+  improves (eval_com (cp_seq c1 c2) k s) (eval_com (Seq c1 c2) k s).
 Proof.
 case: c1 c2 _ / cp_seqP => [c|c|{}c1 c2] //=.
-rewrite -{1}[eval_com _ _ _]result_bind_done.
+rewrite -{1}[eval_com _ _ _]result_mbind_done.
 by apply: improves_bind => //.
 Qed.
 
-Lemma cp_assign_correct x e s k :
-  improves (eval_com (cp_assign x e) s k) (eval_com (Assign x e) s k).
+Lemma cp_assign_correct x e k s :
+  improves (eval_com (cp_assign x e) k s) (eval_com (Assign x e) k s).
 Proof.
 case: x e _ / cp_assignP => [x|x e] //=.
 case E: (s !! x) => [n|] //=. by rewrite insert_id.
 Qed.
 
-Lemma cp_if_correct e c1 c2 s k :
-  improves (eval_com (cp_if e c1 c2) s k) (eval_com (If e c1 c2) s k).
+Lemma cp_if_correct e c1 c2 k s :
+  improves (eval_com (cp_if e c1 c2) k s) (eval_com (If e c1 c2) k s).
 Proof.
 rewrite /=.
 case: e c1 c2 _ / cp_ifP=> [e c|c1 c2|n c1 c2 n_not_0|e c1 c2] //=.
@@ -285,8 +285,8 @@ case: e c1 c2 _ / cp_ifP=> [e c|c1 c2|n c1 c2 n_not_0|e c1 c2] //=.
 - by rewrite bool_decide_eq_false_2.
 Qed.
 
-Lemma cp_while_correct e c s k :
-  improves (eval_com (cp_while e c) s k) (eval_com (While e c) s k).
+Lemma cp_while_correct e c k s :
+  improves (eval_com (cp_while e c) k s) (eval_com (While e c) k s).
 Proof.
 rewrite /cp_while.
 case: bool_decide_reflect => [->|] //.
@@ -296,13 +296,13 @@ Qed.
 Lemma iter_improves {T} (f g : (T → result T) → T → result T) x k :
   (∀ f' g', (∀ x, improves (f' x) (g' x)) →
              ∀ x, improves (f f' x) (g g' x)) →
-  improves (iter f x k) (iter g x k).
+  improves (iter f k x) (iter g k x).
 Proof.
 move=> H; elim: k => //= [|k IH] in x *; apply: H => // {}x.
 Qed.
 
-Lemma cp_com_correct c s k :
-  improves (eval_com (cp_com c) s k) (eval_com c s k).
+Lemma cp_com_correct c k s :
+  improves (eval_com (cp_com c) k s) (eval_com c k s).
 Proof.
 elim: c => [|c1 IH1 c2 IH2|x e|e c1 IH1 c2 IH2|e c IH] //= in s k *.
 - apply: improves_trans; first exact: cp_seq_correct.
