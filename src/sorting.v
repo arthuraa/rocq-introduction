@@ -40,7 +40,8 @@ Compute true || false.
     [true] if and only if one number is less than the other. *)
 
 Fixpoint insert (x : nat) (xs : list nat) : list nat :=
-(* <solution *)
+(* <exercise-only>[].</exercise-only> *)
+(* <solution> *)
   match xs with
   | [] => [x]
   | x' :: xs' => if x <=? x' then x :: x' :: xs'
@@ -48,7 +49,9 @@ Fixpoint insert (x : nat) (xs : list nat) : list nat :=
   end.
 (* </solution> *)
 
-Fixpoint sort xs :=
+
+Fixpoint sort (xs : list nat) : list nat :=
+(* <exercise-only>[].</exercise-only> *)
 (* <solution> *)
   match xs with
   | [] => []
@@ -73,7 +76,8 @@ Compute sort [5; 4; 4; 1; 3].
 
 *)
 
-Fixpoint count (x : nat) xs :=
+Fixpoint count (x : nat) (xs : list nat) : nat :=
+(* <exercise-only>0.</exercise-only> *)
 (* <solution> *)
   match xs with
   | [] => 0
@@ -111,14 +115,15 @@ Qed.
     type [Prop].  To write a predicate, we just need to write a function that
     returns a [Prop]. *)
 
-(* <solution> *)
 Definition lt_hd x xs :=
   match xs with
   | [] => True
   | y :: _ => x <= y
   end.
 
-Fixpoint sorted xs : Prop :=
+Fixpoint sorted (xs : list nat) : Prop :=
+(* <exercise-only>False.</exercise-only> *)
+(* <solution> *)
   match xs with
   | [] => True
   | x :: xs => lt_hd x xs /\ sorted xs

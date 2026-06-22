@@ -42,15 +42,13 @@ Compute true || false.
     [true] if and only if one number is less than the other. *)
 
 Fixpoint insert (x : nat) (xs : list nat) : list nat :=
-(* <solution *)
-  match xs with
-  | [] => [x]
-  | x' :: xs' => if x <=? x' then x :: x' :: xs'
-                 else x' :: insert x xs'
-  end.
-(* </solution> *)
+[].
 
-Fixpoint sort xs :=
+
+
+
+Fixpoint sort (xs : list nat) : list nat :=
+[].
 
 
 
@@ -72,7 +70,8 @@ Compute sort [5; 4; 4; 1; 3].
 
 *)
 
-Fixpoint count (x : nat) xs :=
+Fixpoint count (x : nat) (xs : list nat) : nat :=
+0.
 
 
 
@@ -94,6 +93,14 @@ Proof. Admitted.
     type [Prop].  To write a predicate, we just need to write a function that
     returns a [Prop]. *)
 
+Definition lt_hd x xs :=
+  match xs with
+  | [] => True
+  | y :: _ => x <= y
+  end.
+
+Fixpoint sorted (xs : list nat) : Prop :=
+False.
 
 
 
