@@ -35,6 +35,8 @@ Inductive com :=
 (* Run [c] while [e] is non-zero *)
 | While (e : expr) (c : com).
 
+(* <skip /> *)
+
 (** We will start using several features of Rocq and stdpp more freely.  Rocq
     has a type class mechanism similar to that of Haskell, which allows us to
     overload operations.  The [EqDecision] type class says that a type has a
@@ -50,9 +52,15 @@ Proof. solve_decision. Defined.
 Global Instance com_eqdec : EqDecision com.
 Proof. solve_decision. Defined.
 
+(* <skip /> *)
+
 (** We will now define several functions for evaluating programs of our
     language. First, we define a function [eval_binop] that applies a binary
-    operation to two numbers. *)
+    operation to two numbers.
+
+    ([bool_decide P] is an stdpp function that returns [true] if and only if [P]
+    holds.  It only works for propositions that were shown to be decidable, like
+    we did for equality on [com].) *)
 
 Definition eval_binop b :=
   match b with
@@ -68,6 +76,8 @@ Definition eval_binop b :=
     in Java or dictionaries in Python.  *)
 
 Definition state : Type := gmap string nat.
+
+(* <skip /> *)
 
 (** We have several options to define the semantics.  The most traditional
     choice in Rocq is to define a reduction relation on states; for example,
@@ -107,10 +117,14 @@ Global Instance mbind_result : MBind result := fun A B f x =>
   | NotYet => NotYet
   end.
 
+(* <skip /> *)
+
 (** We are now ready to evaluate expressions.  Note that the computation returns
     error if some variable is not defined in the current state [s]. *)
 
 Fixpoint eval_expr (e : expr) (s : state) : result nat :=
+(* <exercise-only>NotYet.</exercise-only> *)
+(* <solution> *)
   match e with
   | Var x => if s !! x is Some n then Done n else Error
   | Num n => Done n
@@ -119,16 +133,19 @@ Fixpoint eval_expr (e : expr) (s : state) : result nat :=
       n2 ← eval_expr e2 s;
       Done (eval_binop b n1 n2)
   end.
+(* </solution> *)
 
 (** Evaluating an expression always yields a final result or an error. *)
 
 Lemma eval_expr_notyet e s : eval_expr e s ≠ NotYet.
+(* <admitted> *)
 Proof.
 induction e as [x|n|b e1 IH1 e2 IH2]; rewrite /=; eauto.
 - destruct (s !! x); eauto.
 - destruct (eval_expr e1) as [r1| | ]; try done.
   destruct (eval_expr e2) as [r2| | ]; done.
 Qed.
+(* </admitted> *)
 
 (** Ideally, to evaluate commands, we would write a function [eval_com] of type
     [com -> state -> result state].  Unfortunately, Rocq will not allow us to do
@@ -140,42 +157,47 @@ Qed.
     input [k] to the evaluation function, which counts the maximum number of
     iterations of [while] that we are allowed to perform. *)
 
-Fixpoint iter {T} (f : (T -> result T) -> T -> result T) (x : T) (k : nat)
-    : result T :=
+Fixpoint iter {T} (f : (T -> result T) -> T -> result T) k x : result T :=
   f (fun x' =>
       match k with
       | 0 => NotYet
-      | S k' => iter f x' k'
+      | S k' => iter f k' x'
       end) x.
 
-Fixpoint eval_com (c : com) (s : state) (k : nat) : result state :=
+Fixpoint eval_com (c : com) (k : nat) (s : state) : result state :=
   match c with
   | Skip =>
       Done s
 
   | Seq c1 c2 =>
-      s' ← eval_com c1 s k;
-      eval_com c2 s' k
+      s' ← eval_com c1 k s;
+      eval_com c2 k s'
 
   | Assign x e =>
       n ← eval_expr e s;
       Done (<[x := n]> s)
 
   | If e c1 c2 =>
+      (* <exercise-only>NotYet</exercise-only> *)
+      (* <solution> *)
       n ← eval_expr e s;
-      if bool_decide (n = 0) then eval_com c2 s k
-      else eval_com c1 s k
+      if bool_decide (n = 0) then eval_com c2 k s
+      else eval_com c1 k s
+      (* </solution> *)
 
   | While e c =>
+      (* <exercise-only>NotYet</exercise-only> *)
+      (* <solution> *)
       let f eval_while s' : result state :=
         n ← eval_expr e s';
         if bool_decide (n = 0) then
           Done s'
         else
-          s'' ← eval_com c s' k;
+          s'' ← eval_com c k s';
           eval_while s''
       in
-      iter f s k
+      iter f k s
+      (* </solution> *)
 
   end.
 
@@ -185,18 +207,24 @@ Fixpoint eval_com (c : com) (s : state) (k : nat) : result state :=
 
 Lemma result_done_mbind :
   forall {T S} (x : T) (f : T -> result S), mbind f (Done x) = f x.
+(* <admitted> *)
 Proof. eauto. Qed.
+(* </admitted> *)
 
 Lemma result_mbind_done : forall {T} (x : result T), mbind Done x = x.
+(* <admitted> *)
 Proof.
 intros T []; eauto.
 Qed.
+(* </admitted> *)
 
 Lemma result_mbind_assoc :
   forall {T S R} (g : S -> result R) (f : T -> result S) (x : result T),
     mbind g (mbind f x) =
     mbind (fun y : T => mbind g (f y)) x.
+(* <admitted> *)
 Proof. intros T S R f g []; eauto. Qed.
+(* </admitted> *)
 
 (** If [mbind] returns [Done], then the computation must have succeeded in both
     stages. *)
@@ -205,7 +233,9 @@ Lemma result_mbind_inv :
   forall {T S} {f : T -> result S} {x : result T} {y : S},
     mbind f x = Done y ->
     exists a, x = Done a /\ f a = Done y.
+(* <admitted> *)
 Proof. intros T S f [x | |] y; eauto; done. Qed.
+(* </admitted> *)
 
 (** We define an ordering relation on [result] as follows.  We say that [x] is
     _less defined_ than [y], written [x ⊑ y], if they are equal or [x] is
@@ -238,11 +268,13 @@ Lemma result_bind_mono :
     x ⊑ y ->
     (forall a, f a ⊑ g a) ->
     mbind f x ⊑ mbind g y.
+(* <admitted> *)
 Proof.
 intros T S f g x y [H|H] f_g.
 - rewrite H. eauto.
 - rewrite H. destruct y as [a| |]; eauto.
 Qed.
+(* </admitted> *)
 
 (** (As an aside, this type of statement is common in frameworks for _relational
     reasoning_ about programs: being able to relate the final results of two
@@ -261,7 +293,7 @@ Lemma iter_mono :
       (forall x, f' x ⊑ g' x) ->
       (forall x, f f' x ⊑ g g' x)) ->
     n <= m ->
-    iter f x n ⊑ iter g x m.
+    iter f n x ⊑ iter g m x.
 Proof.
 intros T f g n m x f_g n_m.
 induction m as [|m IH] in n, n_m, x |- *.
@@ -276,7 +308,8 @@ Qed.
     results with more iterations. *)
 
 Lemma eval_com_mono :
-  forall n m c s, n <= m -> eval_com c s n ⊑ eval_com c s m.
+  forall n m c s, n <= m -> eval_com c n s ⊑ eval_com c m s.
+(* <admitted> *)
 Proof.
 intros n m c s n_m.
 induction c as [|c1 IH1 c2 IH2|x e|e c1 IH1 c2 IH2|e c IH] in s |- *;
@@ -290,6 +323,7 @@ induction c as [|c1 IH1 c2 IH2|x e|e c1 IH1 c2 IH2|e c IH] in s |- *;
   intros a. destruct (bool_decide _); eauto.
   apply result_bind_mono; eauto.
 Qed.
+(* </admitted> *)
 
 (** So much for definedness.  We are now going to reason about program safety.
     Usually, obtaining an error as the result of evaluation indicates that there
@@ -318,9 +352,10 @@ Fixpoint vars_com c : gset string :=
 
 (** Here is what we hope to prove: *)
 
-Lemma vars_com_not_error c s k :
+Lemma vars_com_not_error c k s :
   subseteq (vars_com c) (dom s) ->
-  eval_com c s k <> Error.
+  eval_com c k s <> Error.
+(* <admitted> *)
 Proof.
 induction c as [|c1 IH1 c2 IH2|x e|e c1 IH1 c2 IH2|e c IH] in s |- *;
   rewrite /=.
@@ -333,17 +368,130 @@ induction c as [|c1 IH1 c2 IH2|x e|e c1 IH1 c2 IH2|e c IH] in s |- *;
   destruct (eval_com c1 s k) as [s' | | ]; rewrite /=.
   + apply IH2. (* Stuck... *)
 Abort.
+(* </admitted> *)
 
+(* <solution> *)
 Lemma iter_ind :
   forall {T} (P : result T -> Prop) (f : (T -> result T) -> T -> result T),
     P NotYet ->
     (forall f',
       (forall x, P (Done x) -> P (f' x)) ->
       (forall x, P (Done x) -> P (f f' x))) ->
-    forall x n, P (Done x) -> P (iter f x n).
+    forall x n, P (Done x) -> P (iter f n x).
 Proof.
 intros T P f H0 H1 x n Hx.
 induction n as [|n IH] in x, Hx |- *; rewrite /=.
 - apply H1; eauto.
 - apply H1; eauto.
 Qed.
+
+Lemma vars_expr_not_error e s :
+  subseteq (vars_expr e) (dom s) ->
+  eval_expr e s <> Error.
+Proof.
+induction e as [x|n|b e1 IH1 e2 IH2]; rewrite /=; try done.
+- rewrite singleton_subseteq_l elem_of_dom.
+  intros [n E]. rewrite /= E. done.
+- intros Hsub.
+  rewrite union_subseteq in Hsub.
+  destruct Hsub as [Hsub1 Hsub2].
+  assert (IH1' := IH1 Hsub1). assert (IH2' := IH2 Hsub2).
+  destruct (eval_expr e1 s) as [n1| |]; rewrite /=; try done.
+  destruct (eval_expr e2 s) as [n2| |]; rewrite /=; try done.
+Qed.
+
+Definition safe_for (X : gset string) (f : state -> result state) : Prop :=
+  forall s, subseteq X (dom s) ->
+    match f s with
+    | Done s' => dom s' = dom s
+    | Error => False
+    | NotYet => True
+    end.
+
+Lemma iter_safe : 
+  forall X F k,
+    (forall f, safe_for X f -> safe_for X (F f)) ->
+    safe_for X (iter F k).
+Proof.
+intros X F k HF.
+induction k as [|k IH]; rewrite /=.
+- apply HF. done.
+- intros s X_s. apply HF; done.
+Qed.
+
+Lemma eval_com_safe c k : safe_for (vars_com c) (eval_com c k).
+Proof.
+induction c as [|c1 IH1 c2 IH2|x e|e c1 IH1 c2 IH2|e c IH];
+  rewrite /=; eauto.
+- intros s _; done.
+- intros s. rewrite union_subseteq. intros [Hsub1 Hsub2].
+  assert (E1 := IH1 s Hsub1).
+  destruct (eval_com c1 k s) as [s1| |]; rewrite /=; try done.
+  rewrite -E1 in Hsub2.
+  assert (E2 := IH2 s1 Hsub2).
+  destruct (eval_com c2 k s1) as [s2| |]; rewrite /=; try done.
+  congruence.
+- intros s. rewrite union_subseteq. intros [x_s Hsub].
+  assert (Hsub' := vars_expr_not_error _ _ Hsub).
+  destruct eval_expr as [n| |]; rewrite /=; try done.
+  rewrite dom_insert_L. apply subseteq_union_L. done.
+- intros s. rewrite !union_subseteq. intros (Hsube & Hsub1 & Hsub2).
+  assert (Hsube' := vars_expr_not_error _ _ Hsube).
+  destruct eval_expr as [n| |]; rewrite /=; try done.
+  destruct bool_decide; eauto.
+  + apply IH2. done.
+  + apply IH1. done.
+- apply iter_safe. intros f f_safe s Hsub.
+  assert (Hsub' := Hsub).
+  rewrite union_subseteq in Hsub'. destruct Hsub' as [Hsube Hsubc].
+  assert (He := vars_expr_not_error _ _ Hsube).
+  destruct (eval_expr e s) as [n| |]; rewrite /=; try done.
+  destruct bool_decide; rewrite /=; try done.
+  assert (IH' := IH s Hsubc).
+  destruct (eval_com c k s) as [s1| |]; rewrite /= in IH' *; try done.
+  rewrite -IH' in Hsub *. apply f_safe. done.
+Qed.
+
+Lemma vars_com_subseteq c s k s' :
+  eval_com c k s = Done s' ->
+  subseteq (dom s) (dom s').
+Proof.
+pose (P (s : state) (r : result state) :=
+  match r with
+  | Done s' => subseteq (dom s) (dom s')
+  | _ => True
+  end
+).
+assert (P s (eval_com c k s)); last first.
+{ intros E. rewrite E in H. done. }
+clear s'.
+induction c as [|c1 IH1 c2 IH2|x e|e c1 IH1 c2 IH2|e c IH] in s |- *;
+  rewrite /=.
+- congruence.
+- assert (E1 := IH1 s).
+  destruct (eval_com c1 k s) as [s1| |]; rewrite /=; try done.
+  assert (E2 := IH2 s1).
+  destruct (eval_com c2 k s1) as [s2| |]; rewrite /=; try done.
+  trans (dom s1); eauto.
+- destruct eval_expr; rewrite /=; try done.
+  rewrite dom_insert. intros y. rewrite elem_of_union. eauto.
+- destruct eval_expr; rewrite /=; try done.
+  destruct bool_decide; eauto.
+- apply (iter_ind (P s)); rewrite /=; try done.
+  rewrite /=. intros ev_while Hev_while s1 Hs1.
+  destruct (eval_expr e s1) as [n1| |]; rewrite /=; try done.
+  destruct bool_decide; rewrite /=; try done.
+  assert (IH' := IH s1).
+  destruct (eval_com c k s1) as [s2| |]; rewrite /= in IH' *; try done.
+  apply Hev_while. trans (dom s1); done.
+Qed.
+
+Lemma vars_com_not_error c k s :
+  subseteq (vars_com c) (dom s) ->
+  eval_com c k s <> Error.
+Proof.
+intros Hsub Herr.
+assert (contra := eval_com_safe _ k s Hsub).
+rewrite Herr in contra. done.
+Qed.
+(* </solution> *)
