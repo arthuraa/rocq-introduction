@@ -40,4 +40,4 @@ done
 
 mkdir -p $out_dir
 
-cp src/_RocqProject src/*Makefile* $out_dir
+cp src/_CoqProject src/*Makefile* $out_dir

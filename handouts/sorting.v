@@ -122,7 +122,7 @@ Lemma lt_hd_sorted x xs :
 Proof. Admitted.
 
 
-Lemma elem_of_insert x y xs : x ∈ insert y xs <-> x = y \/ x ∈ xs.
+Lemma elem_of_insert x y xs : elem_of x (insert y xs) <-> x = y \/ elem_of x xs.
 Proof. Admitted.
 
 
@@ -154,7 +154,7 @@ Extraction "sort.ml" sort.
 Fixpoint sorted' xs : Prop :=
   match xs with
   | [] => True
-  | x :: xs => (forall y, y ∈ xs -> x <= y) /\ sorted' xs
+  | x :: xs => (forall y, elem_of y xs -> x <= y) /\ sorted' xs
   end.
 
 Lemma sorted_alt xs : sorted xs <-> sorted' xs.

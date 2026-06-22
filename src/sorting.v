@@ -158,7 +158,7 @@ intros sorted_xs. induction xs as [|y xs IH] in x, sorted_xs |- *.
 Qed.
 (* </admitted> *)
 
-Lemma elem_of_insert x y xs : x ∈ insert y xs <-> x = y \/ x ∈ xs.
+Lemma elem_of_insert x y xs : elem_of x (insert y xs) <-> x = y \/ elem_of x xs.
 (* <admitted> *)
 Proof.
 induction xs as [|z xs IH].
@@ -167,7 +167,7 @@ induction xs as [|z xs IH].
   destruct (_ <=? _).
   + rewrite !elem_of_cons. done.
   + rewrite elem_of_cons IH.
-    rewrite [_ ∨ _]assoc [x = z ∨ _]comm assoc. done.
+    rewrite [_ \/ _]assoc [x = z \/ _]comm assoc. done.
 Qed.
 (* </admitted> *)
 
@@ -220,7 +220,7 @@ Extraction "sort.ml" sort.
 Fixpoint sorted' xs : Prop :=
   match xs with
   | [] => True
-  | x :: xs => (forall y, y ∈ xs -> x <= y) /\ sorted' xs
+  | x :: xs => (forall y, elem_of y xs -> x <= y) /\ sorted' xs
   end.
 
 Lemma sorted_alt xs : sorted xs <-> sorted' xs.
@@ -276,7 +276,7 @@ Proof. rewrite /tr_sort. apply sorted_tr_sort_aux. done. Qed.
     fact.  *)
 
 (* <solution> *)
-Lemma count_elem_of x xs : x ∈ xs <-> 0 < count x xs.
+Lemma count_elem_of x xs : elem_of x xs <-> 0 < count x xs.
 Proof.
 induction xs as [|y xs IH].
 - rewrite elem_of_nil /=. split; lia.
@@ -307,9 +307,9 @@ induction xs as [|x xs IH] in ys |- *; rewrite /=.
   + assert (contra := H x).
     rewrite /= Nat.eqb_refl /= in contra. done.
   + rewrite /= in sorted_ys. destruct sorted_ys as [y_ys sorted_ys].
-    assert (forall z, z ∈ xs -> x <= z) as x_xs'.
+    assert (forall z, elem_of z xs -> x <= z) as x_xs'.
     { rewrite -lt_hd_sorted; auto. }
-    assert (forall z, z ∈ ys -> y <= z) as y_ys'.
+    assert (forall z, elem_of z ys -> y <= z) as y_ys'.
     { rewrite -lt_hd_sorted; auto. }
     assert (x <= y) as x_y.
     { assert (Hy := H y). rewrite /= Nat.eqb_refl /= in Hy.
