@@ -16,6 +16,16 @@ interactively.
 - `src/` contains the original Rocq sources, including solutions.
 - `preprocess.sh` shell script to generate handouts.
 
+## Lectures
+
+`logic.v` is a cheat sheet with many examples of logical connectives and related
+tactics.  The main lectures correspond to the following files:
+
+- `basics.v`: Basic Rocq syntax and tactics 
+- `sorting.v` Programming with lists
+- `imp.v` Imperative programs
+- `opt.v` Verifying a program optimizer
+
 ## Further resources
 
 This introduction is necessarily incomplete: there are many concepts and
