@@ -365,7 +365,7 @@ induction c as [|c1 IH1 c2 IH2|x e|e c1 IH1 c2 IH2|e c IH] in s |- *;
           subseteq (vars_com c2) (dom s)) as [H1 H2].
   { rewrite -union_subseteq. done. }
   assert (IH1' := IH1 _ H1).
-  destruct (eval_com c1 s k) as [s' | | ]; rewrite /=.
+  destruct (eval_com c1 k s) as [s' | | ]; rewrite /=.
   + apply IH2. (* Stuck... *)
 Abort.
 (* </admitted> *)
