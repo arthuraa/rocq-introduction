@@ -169,7 +169,7 @@ case: e =>[x|[|n]|*]; eauto using cp_if_spec.
 Qed.
 
 Definition improves {T} (x y : result T) : Prop :=
-  y = Error ∨ x = y.
+  y = Error \/ x = y.
 
 Lemma improves_error {T} (x : result T) : improves x Error.
 Proof. by left. Qed.
@@ -180,19 +180,19 @@ Proof. by right. Qed.
 Hint Resolve improves_error improves_refl : core.
 
 Lemma improves_trans {T} (x y z : result T) :
-  improves x y → improves y z → improves x z.
+  improves x y -> improves y z -> improves x z.
 Proof. by move=> H1 [->|<-]. Qed.
 
-Lemma improves_bind {T S} (x y : result T) (f g : T → result S) :
-  improves x y →
-  (∀ r, improves (f r) (g r)) →
+Lemma improves_bind {T S} (x y : result T) (f g : T -> result S) :
+  improves x y ->
+  (∀ r, improves (f r) (g r)) ->
   improves (mbind f x) (mbind g y).
 Proof.
 case=> [->|->] //= f_g. by case: y => [r||] //=.
 Qed.
 
 Lemma improves_eval_expr {T} (x : result T) e s f :
-  (∀ n, improves x (f n)) →
+  (∀ n, improves x (f n)) ->
   improves x (mbind f (eval_expr e s)).
 Proof.
 have := eval_expr_notyet e s.
@@ -293,9 +293,9 @@ case: bool_decide_reflect => [->|] //.
 by case: k.
 Qed.
 
-Lemma iter_improves {T} (f g : (T → result T) → T → result T) x k :
-  (∀ f' g', (∀ x, improves (f' x) (g' x)) →
-             ∀ x, improves (f f' x) (g g' x)) →
+Lemma iter_improves {T} (f g : (T -> result T) -> T -> result T) x k :
+  (∀ f' g', (∀ x, improves (f' x) (g' x)) ->
+             ∀ x, improves (f f' x) (g g' x)) ->
   improves (iter f k x) (iter g k x).
 Proof.
 move=> H; elim: k => //= [|k IH] in x *; apply: H => // {}x.

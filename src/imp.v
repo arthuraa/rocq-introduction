@@ -67,7 +67,7 @@ Definition eval_binop b :=
   | Add => Nat.add
   | Mul => Nat.mul
   | Sub => Nat.sub
-  | Leq => fun n1 n2 => if bool_decide (n1 ≤ n2) then 1 else 0
+  | Leq => fun n1 n2 => if bool_decide (n1 <= n2) then 1 else 0
   end.
 
 (** To evaluate a command, we need access to the current state of the program.
@@ -137,7 +137,7 @@ Fixpoint eval_expr (e : expr) (s : state) : result nat :=
 
 (** Evaluating an expression always yields a final result or an error. *)
 
-Lemma eval_expr_notyet e s : eval_expr e s ≠ NotYet.
+Lemma eval_expr_notyet e s : eval_expr e s <> NotYet.
 (* <admitted> *)
 Proof.
 induction e as [x|n|b e1 IH1 e2 IH2]; rewrite /=; eauto.
