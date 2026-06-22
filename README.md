@@ -9,3 +9,19 @@ to install all the required packages to follow this introduction. We recommend
 that you install the Rocq Platform for Rocq v9.0. The website also contains
 instructions on how to set up popular text editors to develop Rocq code
 interactively.
+
+## Structure
+
+- `handouts/` contains all the source files without the solutions.
+- `src/` contains the original Rocq sources, including solutions.
+- `preprocess.sh` shell script to generate handouts.
+
+## Further resources
+
+This introduction is necessarily incomplete: there are many concepts and
+features of Rocq that are not covered. If you want to learn more, the Rocq
+website has [several recommended books](https://rocq-prover.org/docs) targeting
+beginner, intermediate and advanced readers.  The [Software Foundatations
+series](https://softwarefoundations.cis.upenn.edu/), in particular, has several
+books covering topics such as logical foundations, programming language theory,
+separation logic, and many more.
