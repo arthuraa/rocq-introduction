@@ -403,12 +403,12 @@ Qed.
 Definition safe_for (X : gset string) (f : state -> result state) : Prop :=
   forall s, subseteq X (dom s) ->
     match f s with
-    | Done s' => dom s' = dom s
+    | Done s' => subseteq (dom s) (dom s')
     | Error => False
     | NotYet => True
     end.
 
-Lemma iter_safe : 
+Lemma iter_safe :
   forall X F k,
     (forall f, safe_for X f -> safe_for X (F f)) ->
     safe_for X (iter F k).
@@ -427,14 +427,15 @@ induction c as [|c1 IH1 c2 IH2|x e|e c1 IH1 c2 IH2|e c IH];
 - intros s. rewrite union_subseteq. intros [Hsub1 Hsub2].
   assert (E1 := IH1 s Hsub1).
   destruct (eval_com c1 k s) as [s1| |]; rewrite /=; try done.
-  rewrite -E1 in Hsub2.
-  assert (E2 := IH2 s1 Hsub2).
+  assert (subseteq (vars_com c2) (dom s1)) as Hsub2'.
+  { intros ??; eauto. }
+  assert (E2 := IH2 s1 Hsub2').
   destruct (eval_com c2 k s1) as [s2| |]; rewrite /=; try done.
-  congruence.
+  intros ??; eauto.
 - intros s. rewrite union_subseteq. intros [x_s Hsub].
   assert (Hsub' := vars_expr_not_error _ _ Hsub).
   destruct eval_expr as [n| |]; rewrite /=; try done.
-  rewrite dom_insert_L. apply subseteq_union_L. done.
+  rewrite dom_insert_L. intros ?. rewrite elem_of_union. eauto.
 - intros s. rewrite !union_subseteq. intros (Hsube & Hsub1 & Hsub2).
   assert (Hsube' := vars_expr_not_error _ _ Hsube).
   destruct eval_expr as [n| |]; rewrite /=; try done.
@@ -449,7 +450,10 @@ induction c as [|c1 IH1 c2 IH2|x e|e c1 IH1 c2 IH2|e c IH];
   destruct bool_decide; rewrite /=; try done.
   assert (IH' := IH s Hsubc).
   destruct (eval_com c k s) as [s1| |]; rewrite /= in IH' *; try done.
-  rewrite -IH' in Hsub *. apply f_safe. done.
+  assert (subseteq (vars_expr e ∪ vars_com c) (dom s1)) as Hsub'.
+  { intros ??; eauto. }
+  assert (Hf := f_safe _ Hsub'). destruct (f s1) as [s2| |]; eauto.
+  intros ??; eauto.
 Qed.
 
 Lemma vars_com_subseteq c s k s' :
@@ -494,4 +498,110 @@ intros Hsub Herr.
 assert (contra := eval_com_safe _ k s Hsub).
 rewrite Herr in contra. done.
 Qed.
+(* </solution> *)
+
+(** Exercise: Improving safety
+
+    In our semantics of Imp, a program does not fail if it writes to an
+    undefined variable: that variable simply becomes defined.  Strengthen the
+    safety result so that written variables do not need to be included.
+
+*)
+
+Fixpoint vars_com_read c : gset string :=
+  match c with
+  | Skip => empty
+  | Seq c1 c2 => union (vars_com_read c1) (vars_com_read c2)
+  | Assign _ e => vars_expr e
+  | If e c1 c2 => union (vars_expr e)
+                    (union (vars_com_read c1) (vars_com_read c2))
+  | While e c => union (vars_expr e) (vars_com_read c)
+  end.
+
+(* <solution> *)
+Lemma eval_com_safe' c k : safe_for (vars_com_read c) (eval_com c k).
+Proof.
+induction c as [|c1 IH1 c2 IH2|x e|e c1 IH1 c2 IH2|e c IH];
+  rewrite /=; eauto.
+- intros s _; done.
+- intros s. rewrite union_subseteq. intros [Hsub1 Hsub2].
+  assert (E1 := IH1 s Hsub1).
+  destruct (eval_com c1 k s) as [s1| |]; rewrite /=; try done.
+  assert (subseteq (vars_com_read c2) (dom s1)) as Hsub2'.
+  { intros ??; eauto. }
+  assert (E2 := IH2 s1 Hsub2').
+  destruct (eval_com c2 k s1) as [s2| |]; rewrite /=; try done.
+  intros ??; eauto.
+- intros s Hsub.
+  assert (Hsub' := vars_expr_not_error _ _ Hsub).
+  destruct eval_expr as [n| |]; rewrite /=; try done.
+  rewrite dom_insert_L. intros ?. rewrite elem_of_union. eauto.
+- intros s. rewrite !union_subseteq. intros (Hsube & Hsub1 & Hsub2).
+  assert (Hsube' := vars_expr_not_error _ _ Hsube).
+  destruct eval_expr as [n| |]; rewrite /=; try done.
+  destruct bool_decide; eauto.
+  + apply IH2. done.
+  + apply IH1. done.
+- apply iter_safe. intros f f_safe s Hsub.
+  assert (Hsub' := Hsub).
+  rewrite union_subseteq in Hsub'. destruct Hsub' as [Hsube Hsubc].
+  assert (He := vars_expr_not_error _ _ Hsube).
+  destruct (eval_expr e s) as [n| |]; rewrite /=; try done.
+  destruct bool_decide; rewrite /=; try done.
+  assert (IH' := IH s Hsubc).
+  destruct (eval_com c k s) as [s1| |]; rewrite /= in IH' *; try done.
+  assert (subseteq (vars_expr e ∪ vars_com_read c) (dom s1)) as Hsub'.
+  { intros ??; eauto. }
+  assert (Hf := f_safe _ Hsub'). destruct (f s1) as [s2| |]; eauto.
+  intros ??; eauto.
+Qed.
+(* </solution> *)
+
+Lemma vars_com_not_error' c k s :
+  subseteq (vars_com_read c) (dom s) ->
+  eval_com c k s <> Error.
+(* <admitted> *)
+Proof.
+intros Hsub Herr.
+assert (contra := eval_com_safe' _ k s Hsub).
+rewrite Herr in contra. done.
+Qed.
+(* </admitted> *)
+
+(** Exercise: Further Improving Safety
+
+    We take that result even further. If we write to a variable, other commands
+    will be able to read it later on.  Define a recursive function [safe_com X
+    c] that checks whether [c] is safe to run when only the variables in [X] are
+    defined. The function should return an [option (gset string)]: [Some X']
+    indicates that the command is safe and guaranteed to leave every variable in
+    [X'] defined; [None] indicates that the program is not known to be safe.
+
+    Prove that, if a program is safe according to this definition, then it does
+    not return an error. *)
+
+(* <solution> *)
+Fixpoint safe_com (X : gset string) c : option (gset string) :=
+  match c with
+  | Skip => Some X
+  | Seq c1 c2 =>
+      X1 ← safe_com X c1;
+      safe_com X1 c2
+  | Assign x e =>
+      if bool_decide (subseteq X (vars_expr e)) then
+        Some (union (singleton x) X)
+      else None
+  | If e c1 c2 =>
+      if bool_decide (subseteq X (vars_expr e)) then
+        X1 ← safe_com X c1;
+        X2 ← safe_com X c2;
+        Some (intersection X1 X2)
+      else None
+  | While e c =>
+      if bool_decide (subseteq X (vars_expr e)) then
+        (* There might be zero iterations, so we cannot use the variables
+           written by [c] *)
+        _ ← safe_com X c; Some X
+      else None
+  end.
 (* </solution> *)
