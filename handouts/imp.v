@@ -314,3 +314,45 @@ Proof. Admitted.
 
 
 
+
+(** Exercise: Improving safety
+
+    In our semantics of Imp, a program does not fail if it writes to an
+    undefined variable: that variable simply becomes defined.  Strengthen the
+    safety result so that written variables do not need to be included.
+
+*)
+
+Fixpoint vars_com_read c : gset string :=
+  match c with
+  | Skip => empty
+  | Seq c1 c2 => union (vars_com_read c1) (vars_com_read c2)
+  | Assign _ e => vars_expr e
+  | If e c1 c2 => union (vars_expr e)
+                    (union (vars_com_read c1) (vars_com_read c2))
+  | While e c => union (vars_expr e) (vars_com_read c)
+  end.
+
+
+
+
+Lemma vars_com_not_error' c k s :
+  subseteq (vars_com_read c) (dom s) ->
+  eval_com c k s <> Error.
+Proof. Admitted.
+
+
+(** Exercise: Further Improving Safety
+
+    We take that result even further. If we write to a variable, other commands
+    will be able to read it later on.  Define a recursive function [safe_com X
+    c] that checks whether [c] is safe to run when only the variables in [X] are
+    defined. The function should return an [option (gset string)]: [Some X']
+    indicates that the command is safe and guaranteed to leave every variable in
+    [X'] defined; [None] indicates that the program is not known to be safe.
+
+    Prove that, if a program is safe according to this definition, then it does
+    not return an error. *)
+
+
+
