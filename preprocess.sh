@@ -26,8 +26,9 @@ function generate {
     skip_regex="s/\(\*[[:blank:]]*<skip \/>[[:blank:]]*\*\)/${skip_replacement}/ge"
 
     admitted_regex="s/(.*)\(\*[[:blank:]]*<admitted>[[:blank:]]*\*\)(?:[[:space:]]*)((?:\n|.)*?)[[:space:]]*\(\*[[:blank:]]*<\/admitted>[[:blank:]]*\*\)/${admitted_replacement}/ge"
+    commented_regex="s/(.*)\(\*[[:blank:]]*<commented>[[:blank:]]*\*\)(?:[[:space:]]*)((?:\n|.)*?)[[:space:]]*\(\*[[:blank:]]*<\/commented>[[:blank:]]*\*\)/(* \$1 *)/g"
 
-    full_regex="$remove_solution_regex;$remove_solution_inv_only_regex;$leave_exercise_only_regex;$leave_exercise_inv_only_regex;$skip_regex;$admitted_regex"
+    full_regex="$remove_solution_regex;$remove_solution_inv_only_regex;$leave_exercise_only_regex;$leave_exercise_inv_only_regex;$skip_regex;$admitted_regex;$commented_regex"
 
     cat "$IN" | perl -0777 -pe "$full_regex" > $OUT
 
